@@ -6,6 +6,55 @@
 </head>
 <body>
 <h1>RPG admin panel</h1>
+<table id="myTable">
+    <thead>
+    <tr>
+        <th id="number">#</th>
+        <th id="name">Name</th>
+        <th>Title</th>
+        <th>Race</th>
+        <th>Professional</th>
+        <th>Level</th>
+        <th>Birthday</th>
+        <th>Banned</th>
+    </tr>
+    </thead>
+    <tbody>
+    <!-- Сюда будут добавляться строки с данными-->
+    </tbody>
+    <script>
+        $.get({
+            url: "/rest/players",
+            type: "GET",
+            dataType: "json",
+            success: function(data) {
+                // Находим тело таблицы
+                const tableBody = $('#myTable tbody');
+                // Очистка таблицы перед заполнением новыми данными
+                tableBody.empty();
+                // Перебираем каждый элемент массива
+                data.forEach(item => {
+                    // Создаем новую строку таблицы с данными
+                    const row = `
+                        <tr>
+                            <td>${item.id}</td>
+                            <td>${item.name}</td>
+                            <td>${item.title}</td>
+                            <td>${item.race}</td>
+                            <td>${item.professional}</td>
+                            <td>${item.level}</td>
+                            <td>${item.birthday}</td>
+                            <td>${item.banned}</td>
+                        </tr>
+                    `;
+                    // Добавляем строку в тело таблицы
+                    tableBody.append(row);
+                });
+            }
+        });
+    </script>
+
+</table>
 
 </body>
 </html>
