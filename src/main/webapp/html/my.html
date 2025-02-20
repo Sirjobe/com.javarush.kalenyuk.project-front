@@ -1,60 +1,148 @@
 <html>
 <head>
-    <title>RPG</title>
-    <script src=https://code.jquery.com/jquery-3.6.0.min.js></script>
+    <title>RPG Admin Panel</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="/css/my.css" rel="stylesheet">
 </head>
-<body>
-<h1>RPG admin panel</h1>
+
+<body onload="show_table(0)">
+<h1>RPG Admin Panel</h1>
+<h2>Accounts list:</h2>
+<table for = "count_1">Count per page:
+    <select id = "count_1" onchange = "show_table(0)">
+        <option value="3">3</option>
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+    </select>
+</table>
+
+
 <table id="myTable">
-    <thead>
     <tr>
-        <th id="number">#</th>
-        <th id="name">Name</th>
-        <th>Title</th>
-        <th>Race</th>
-        <th>Professional</th>
-        <th>Level</th>
-        <th>Birthday</th>
-        <th>Banned</th>
+            <th>#</th>
+            <th>Name</th>
+            <th>Title</th>
+            <th>Race</th>
+            <th>Professional</th>
+            <th>Level</th>
+            <th>Birthday</th>
+            <th>Banned</th>
+            <th>Edit</th>
+            <th>Delete</th>
+
     </tr>
-    </thead>
-    <tbody>
-    <!-- Сюда будут добавляться строки с данными-->
-    </tbody>
-    <script>
-        $.get({
-            url: "/rest/players",
-            type: "GET",
-            dataType: "json",
-            success: function(data) {
-                // Находим тело таблицы
-                const tableBody = $('#myTable tbody');
-                // Очистка таблицы перед заполнением новыми данными
-                tableBody.empty();
-                // Перебираем каждый элемент массива
-                data.forEach(item => {
-                    // Создаем новую строку таблицы с данными
-                    const row = `
-                        <tr>
-                            <td>${item.id}</td>
-                            <td>${item.name}</td>
-                            <td>${item.title}</td>
-                            <td>${item.race}</td>
-                            <td>${item.professional}</td>
-                            <td>${item.level}</td>
-                            <td>${item.birthday}</td>
-                            <td>${item.banned}</td>
-                        </tr>
-                    `;
-                    // Добавляем строку в тело таблицы
-                    tableBody.append(row);
-                });
+</table>
+
+<div id="paging_buttons">Pages:</div>
+
+<script>
+    function show_table(page_number) {
+        $("tr:has(td)").remove();
+        let url = "/rest/players?";
+
+        let countPerPage = $("#count_1").val();
+        if(countPerPage == null){
+            countPerPage = 3;
+        }
+
+        url=url.concat("pageSize=").concat(countPerPage);
+
+        if(page_number == null){
+            page_number = 1;
+        }
+
+        url=url.concat("&pageNumber=").concat(page_number);
+
+
+        $.get(url, function(response) {
+            $.each(response, function(i, item) {
+               $('<tr>').html("<td>"
+                   +item.id+"</td><td>"
+                   +item.name+"</td><td>"
+                   +item.title+"</td><td>"
+                   +item.race+"</td><td>"
+                   +item.profession+"</td><td>"
+                   +item.level+"</td><td>"
+                   +new Date(item.birthday).toLocaleDateString()+"</td><td>"
+                   +item.banned+"</td><td>"
+                   +"<button id='button_edit"+item.id+"' onclick='editAcc("+item.id+")'>"
+                   +"<img src='/img/edit.png'>" +"</button>" + "</td><td>"
+                  +"<button id='button_delete"+item.id+"' onclick='deleteAcc("+item.id+")'>"
+                  +"<img src='/img/delete.png'>" +"</button>"+"</td>"
+
+            ).appendTo("#myTable");
+            });
+        });
+        let totalCount = getTotalCount();
+
+        let pagesCount = Math.ceil(totalCount/countPerPage);
+
+        $("button.pgn-bnt-styled").remove();
+
+
+        for (let i = 0; i < pagesCount; i++) {
+            let button_tag = '<button>' + (i + 1) + '</button>';
+            let btn = $(button_tag)
+                .attr('id', 'paging_button_' + i)
+                .attr('onclick', "show_table("+i+")") // Передаем номер страницы
+                .addClass('pgn-bnt-styled');
+            $('#paging_buttons').append(btn);
+        }
+        let identifier = "#paging_buttons" + page_number;
+        $(identifier).css('color',"red");
+    }
+    function getTotalCount() {
+        let url = "/rest/players/count";
+        let res = 0;
+        $.ajax({
+            url: url,
+            async: false,
+            success: function(result) {
+                res = parseInt(result);
             }
         });
-    </script>
+        console.log(res);
+        return res;
+    }
+    function editAcc(id) {
+        let identifier_edit='#button_edit'+id;
+        let identifier_delete='#button_edit'+id;
 
-</table>
+        $(identifier_delete).remove();
+
+        let save_image_tag = "<img src='/img/save.png'>";
+        $(identifier_edit).html(save_image_tag);
+
+        let current_tr_element = $(identifier_edit).parent().parent();
+        let children = current_tr_element.children();
+
+        let td_name = children[1];
+        td_name.innerHTML = "<input id='input_name_"+id+"' type='text'"+td_name.innerHTML+"'>";
+        let td_title = children[2];
+        td_title.innerHTML = "<input id='input_title_"+id+"' type='text'"+td_title.innerHTML+"'>";
+
+    }
+    function deleteAcc(id) {
+        let url = "/rest/players/delete" + id;
+        $.ajax({
+            url: url,
+            type: 'DELETE',
+            success: function() {
+                show_table(getCurrentPage());
+            }
+        });
+    }
+    function getCurrentPage() {
+        let currentPage = 0;
+        $('button:parent(div)').each(function() {
+            if($(this).css('color')==='rgb(255,0,0)') {
+                currentPage = $(this).text();
+            }
+        });
+        return parseInt(currentPage)-1;
+    }
+</script>
 
 </body>
 </html>
